@@ -1,0 +1,13 @@
+{
+  "name": "@wellcare/config",
+  "version": "0.0.0",
+  "private": true,
+  "main": "tailwind.config.ts",
+  "files": [
+    "tailwind.config.ts",
+    "tsconfig.base.json"
+  ],
+  "devDependencies": {
+    "tailwindcss": "^3.4.13"
+  }
+}
