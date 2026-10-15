@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { businessDetails } from "@wellcare/content";
 import nodemailer from "nodemailer";
 import { NextResponse } from "next/server";
+import { buildApplicationEmail } from "@/lib/application-email";
 import { careerApplicationSchema } from "@/lib/schemas";
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -70,23 +71,26 @@ export async function POST(request: Request) {
       auth: { user: gmailUser, pass: gmailAppPassword },
     });
 
+    const email = buildApplicationEmail(parsed.data, {
+      confirmationId,
+      attachments: attachments.map((file, index) => ({
+        label: index === 0 ? "Resume" : "CV",
+        filename: file.filename,
+        sizeBytes: file.content.length,
+      })),
+    });
+
     await transporter.sendMail({
       from: { name: "WellCare Careers", address: gmailUser },
       to: process.env.CAREERS_EMAIL_TO || businessDetails.email,
       replyTo: parsed.data.email,
-      subject: `New caregiver application: ${parsed.data.firstName} ${parsed.data.lastName}`,
-      text: [
-        "New caregiver application received.",
-        `Confirmation ID: ${confirmationId}`,
-        `Applicant: ${parsed.data.firstName} ${parsed.data.lastName}`,
-        `Email: ${parsed.data.email}`,
-        "",
-        "Application details:",
-        JSON.stringify(parsed.data, null, 2),
-      ].join("\n"),
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
       attachments,
     });
-  } catch {
+  } catch (error) {
+    console.error("[careers-site] application email failed", error);
     return NextResponse.json({ error: "We couldn't deliver your application right now. Please try again later." }, { status: 502 });
   }
 
